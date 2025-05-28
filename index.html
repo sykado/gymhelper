@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlexTrack - Gym Progress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏋️</text></svg>">
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Basic transition for section visibility */
+        .section {
+            transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        .section.active {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* Ensure chart canvas is responsive */
+        .chart-container canvas {
+            max-width: 100% !important;
+            height: auto !important;
+        }
+        /* Custom modal animation */
+        #customModalOverlay {
+            transition: opacity 0.3s ease-in-out;
+        }
+        #customModalOverlay .custom-modal {
+            transition: transform 0.3s ease-in-out;
+        }
+        #customModalOverlay.active .custom-modal {
+            transform: scale(1);
+        }
+        #customModalOverlay .custom-modal {
+            transform: scale(0.9);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased">
+
+    <div class="flex flex-col min-h-screen">
+        <header class="bg-slate-800 shadow-lg sticky top-0 z-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-20">
+                    <div class="flex items-center">
+                        <i class="fas fa-dumbbell text-3xl text-sky-400 mr-3"></i>
+                        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-sky-400">FlexTrack</h1>
+                    </div>
+                    <div class="md:hidden">
+                        <button id="mobileMenuBtn" class="text-slate-300 hover:text-sky-400 focus:outline-none">
+                            <i class="fas fa-bars text-2xl"></i>
+                        </button>
+                    </div>
+                    <nav class="hidden md:flex space-x-2 lg:space-x-4">
+                        <button class="nav-btn text-sm lg:text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150 active" data-section="log-workout"><i class="fas fa-edit mr-1"></i> Log Workout</button>
+                        <button class="nav-btn text-sm lg:text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="view-progress"><i class="fas fa-calendar-alt mr-1"></i> View Progress</button>
+                        <button class="nav-btn text-sm lg:text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="manage-machines"><i class="fas fa-cogs mr-1"></i> Machines</button>
+                        <button class="nav-btn text-sm lg:text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="statistics"><i class="fas fa-chart-line mr-1"></i> Statistics</button>
+                        <button class="nav-btn text-sm lg:text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="storage"><i class="fas fa-database mr-1"></i> Storage</button>
+                    </nav>
+                </div>
+            </div>
+            <div id="mobileMenu" class="md:hidden hidden bg-slate-800 border-t border-slate-700">
+                <nav class="flex flex-col space-y-1 px-2 py-3">
+                    <button class="nav-btn block text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150 active" data-section="log-workout"><i class="fas fa-edit mr-2"></i>Log Workout</button>
+                    <button class="nav-btn block text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="view-progress"><i class="fas fa-calendar-alt mr-2"></i>View Progress</button>
+                    <button class="nav-btn block text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="manage-machines"><i class="fas fa-cogs mr-2"></i>Manage Machines</button>
+                    <button class="nav-btn block text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="statistics"><i class="fas fa-chart-line mr-2"></i>Statistics</button>
+                    <button class="nav-btn block text-base font-medium px-3 py-2 rounded-md hover:bg-slate-700 hover:text-sky-400 transition-colors duration-150" data-section="storage"><i class="fas fa-database mr-2"></i>Storage</button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+            <section id="log-workout" class="section active bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-2xl sm:text-3xl font-semibold mb-6 text-sky-300 border-b border-slate-700 pb-3"><i class="fas fa-pencil-alt mr-2"></i>Log Today's Workout</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="machineSelect" class="block text-sm font-medium text-slate-300 mb-1">Select Machine</label>
+                        <select id="machineSelect" class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500 p-3 text-sm">
+                            <option value="">Choose a machine...</option>
+                        </select>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Sets & Reps</label>
+                        <div id="setsContainer" class="space-y-3 mb-3 max-h-60 overflow-y-auto pr-2">
+                            </div>
+                        <button type="button" id="addSetBtn" class="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 text-sm"><i class="fas fa-plus mr-2"></i>Add Set</button>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="exerciseNotes" class="block text-sm font-medium text-slate-300 mb-1">Notes (optional)</label>
+                        <textarea id="exerciseNotes" rows="3" class="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500 p-3 text-sm" placeholder="How did it feel? Any observations..."></textarea>
+                    </div>
+                </div>
+                <button id="logExerciseBtn" class="mt-6 w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-colors duration-150 text-base"><i class="fas fa-check-circle mr-2"></i>Log Exercise</button>
+
+                <div id="todaysWorkout" class="mt-10">
+                    <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-sky-300 border-b border-slate-700 pb-2">Today's Logged Exercises</h3>
+                    <div id="todaysExercisesContainer" class="space-y-4">
+                         <p class="no-data-message text-slate-400 italic text-center py-4">No exercises logged today. Get started!</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-progress" class="section bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-2xl sm:text-3xl font-semibold mb-6 text-sky-300 border-b border-slate-700 pb-3"><i class="far fa-calendar-check mr-2"></i>Weekly Progress</h2>
+                <div class="flex items-center justify-between mb-6 bg-slate-700 p-3 rounded-lg">
+                    <button id="prevWeekBtn" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 text-sm"><i class="fas fa-arrow-left mr-1"></i> Prev</button>
+                    <div id="weekInfo" class="text-lg font-medium text-slate-100">Week N/A</div>
+                    <button id="nextWeekBtn" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 text-sm">Next <i class="fas fa-arrow-right ml-1"></i></button>
+                </div>
+                <div id="weeklyWorkoutsContainer" class="space-y-6">
+                    <p class="no-data-message text-slate-400 italic text-center py-4">No workouts recorded for this week.</p>
+                </div>
+            </section>
+
+            <section id="manage-machines" class="section bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-2xl sm:text-3xl font-semibold mb-6 text-sky-300 border-b border-slate-700 pb-3"><i class="fas fa-tools mr-2"></i>Manage Machines</h2>
+                <div class="bg-slate-700 p-6 rounded-lg shadow-md mb-8">
+                    <h3 class="text-lg font-medium text-sky-400 mb-4">Add New Machine</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="machineName" class="block text-sm font-medium text-slate-300 mb-1">Machine Name</label>
+                            <input type="text" id="machineName" class="w-full bg-slate-600 border border-slate-500 text-slate-100 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500 p-3 text-sm" placeholder="e.g., Barbell Bench Press">
+                        </div>
+                        <div>
+                            <label for="machineImageUrl" class="block text-sm font-medium text-slate-300 mb-1">Image URL or Imgur ID <span class="text-xs text-slate-400">(Optional)</span></label>
+                            <input type="text" id="machineImageUrl" class="w-full bg-slate-600 border border-slate-500 text-slate-100 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500 p-3 text-sm" placeholder="imgur.com/ID or full URL">
+                        </div>
+                    </div>
+                    <button id="addMachineBtn" class="mt-4 w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-150 text-sm"><i class="fas fa-plus-circle mr-2"></i>Add Machine</button>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-medium text-sky-400 mb-4">Your Machines</h3>
+                    <div id="machinesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <p class="no-data-message text-slate-400 italic text-center py-4 md:col-span-full">No machines added yet.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="statistics" class="section bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-2xl sm:text-3xl font-semibold mb-6 text-sky-300 border-b border-slate-700 pb-3"><i class="fas fa-tachometer-alt mr-2"></i>Your Statistics</h2>
+                <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <p class="no-data-message text-slate-400 italic text-center py-4 md:col-span-full">No data available for statistics yet. Log some workouts!</p>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-semibold mb-4 text-sky-300 border-t border-slate-700 pt-4 mt-6">Progress Charts</h3>
+                <div id="progressChartsContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                     <p class="no-data-message text-slate-400 italic text-center py-4 lg:col-span-2" id="noChartsMessage">No chart data yet. Keep logging to see your progress!</p>
+                </div>
+            </section>
+
+            <section id="storage" class="section bg-slate-800 p-6 sm:p-8 rounded-xl shadow-2xl">
+                <h2 class="text-2xl sm:text-3xl font-semibold mb-6 text-sky-300 border-b border-slate-700 pb-3"><i class="fas fa-hdd mr-2"></i>Storage Management</h2>
+                <div class="bg-slate-700 p-4 rounded-lg shadow mb-6">
+                    <p id="storageInfo" class="text-sm text-slate-300">Calculating storage...</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <button id="exportDataBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-150"><i class="fas fa-file-export mr-2"></i>Export Data</button>
+                    <button id="importDataBtn" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-150"><i class="fas fa-file-import mr-2"></i>Import Data</button>
+                    <button id="clearAllDataBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-lg shadow-md transition-colors duration-150 sm:col-span-2 lg:col-span-1"><i class="fas fa-trash-alt mr-2"></i>Clear All Data</button>
+                </div>
+                <input type="file" id="importFile" accept=".json" class="hidden">
+            </section>
+        </main>
+
+        <footer class="bg-slate-800 border-t border-slate-700 mt-auto">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm text-slate-400">
+                &copy; <span id="currentYear"></span> FlexTrack - Your Gym Companion.
+            </div>
+        </footer>
+    </div>
+
+    <div id="customModalOverlay" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-[100] hidden">
+        <div class="custom-modal bg-slate-800 p-6 rounded-xl shadow-2xl w-full max-w-md mx-auto border border-slate-700">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-xl font-semibold text-sky-300">Confirmation</h3>
+                <button id="modalCloseBtn" class="text-slate-400 hover:text-sky-300 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <p id="modalMessage" class="text-slate-300 mb-6 text-sm leading-relaxed">Are you sure?</p>
+            <div id="customModalButtons" class="flex justify-end space-x-3">
+                <button id="modalCancelBtn" class="px-4 py-2 rounded-lg bg-slate-600 hover:bg-slate-500 text-slate-100 font-medium transition-colors text-sm">Cancel</button>
+                <button id="modalConfirmBtn" class="px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-semibold transition-colors text-sm">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script_v3.js"></script>
+</body>
+</html>
